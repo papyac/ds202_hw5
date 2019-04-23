@@ -1,0 +1,160 @@
+000000000000000000000000---
+title: "hw5.Rmd"
+author: "Seydou Yacouba"
+date: "April 10, 2019"
+output: html_document
+---
+
+
+## Liquor Sales in Iowa
+
+This dataset contains the spirits purchase information of Iowa Class “E” liquor licensees by product and date of purchase from January 1, 2012 to current. The dataset can be used to analyze total spirits sales in Iowa of individual products at the store level.
+
+For all of the questions use functionality from the  `tidyverse` whenever possible.
+
+1. Download the RMarkdown file with these homework instructions to use as a template for your work.
+Make sure to replace "Your Name" in the YAML with your name.
+2. The code below downloads the data from the Iowa Portal and saves a local copy to your machine. The first time you run this code, make sure you have a good internet connection and enough space on your machine (~50 MB). If the local copy exists, re-knitting the file will load the (binary) file from disk and be much faster. 
+
+```{r}
+if (file.exists("alcohol.rds")) {
+  data <- readRDS("alcohol.rds")
+} else {
+  url <- "https://xdaiisu.github.io/ds202materials/data/ames.csv"
+  data <- readr::read_csv(url)
+  saveRDS(data, file="alcohol.rds")
+} 
+```
+
+```{r}
+suppressMessages(library(tidyverse))
+theme_set(theme_light())
+```
+
+
+### Understanding the data
+
+```{r}
+data <- readr::read_csv("Iowa-Liquor-Sales-2018.csv")
+head(data)
+```
+
+```{r}
+glimpse(data)
+```
+
+
+# Question 3
+
+## Data cleaning: 
+
+* extract geographic latitude and longitude from the variable `Store Location`
+  
+```{r}
+library(dplyr)
+library(tidyverse)
+head(data$'Store Location')
+dat1 <- data %>% separate('Store Location', into = c("street", "city and zip", "coordinates"), sep = "\n") %>% separate(coordinates, into = c("lat", "long"), sep = ",")
+```
+
+
+### Verifying answer
+
+```{r}
+data %>% 
+    select(5:9) %>%
+    head()
+```
+  
+* check variable types. Pick five variables that need to be converted to a different type and fix those. 
+
+```{r}
+glimpse(data)
+```
+
+
+* extract year, month and day from the variable `Date`
+
+```{r}
+library(lubridate)
+dat <- dat1 %>% separate(Date, into = c("month", "day", "year"), sep = "/")
+dat
+```
+
+
+
+#Question 4
+
+#Plot a scatterplot of lat and long of store locations. 
+
+```{r}
+library(ggplot2)
+ggplot(dat, aes(x=lat, y=long)) + geom_point()
+
+```
+
+
+## Provide a visual breakdown of the liquor category (by `Category Name`). Include volume sold in the breakdown.
+
+```{r fig.width=17, fig.height=12}
+data %>%
+  group_by(`Category Name`) %>%
+  summarise(volume_sold = sum(`Volume Sold (Liters)`)) %>%
+   ggplot(aes(x = `Category Name`, y = volume_sold )) +
+    geom_col() +
+    theme(axis.text.x = element_text(angle = 90, hjust = 1))
+```
+
+
+```{r}
+#tbl_df(table(data$`Category Name`))
+```
+
+# Question 5
+
+Find the daily sales liquor sales in Ames in 2017. Summarize number of sales, volume of liquor sold and amount of money spent. Plot volume sold by day (use a scatterplot of volume by day and facet by month). Describe any patterns.
+Find the dates for ISU football home games in Fall 2017. Can you see a pattern? 
+
+
+#### clean the city data
+```{r}
+count(data, City)
+```
+
+```{r}
+data$City[data$City == "AMES"] <- "Ames"
+count(data, City)
+```
+
+
+### liquor sales in Ames in 2018
+
+```{r}
+df <- dat %>% filter(year==2018) %>% select(day, month, `Volume Sold (Liters)`, `Sale (Dollars)`)
+summary(df)
+plt <- ggplot(df, aes(x=day, y=`Volume Sold (Liters)`)) + geom_point() + facet_wrap(~month)
+#ggplotly()
+```
+
+#### ISU home football fall dates
+```{r}
+#isu_fall2 <- data_frame(Date = c("2017-9-2", "2017-9-9", "2017-9-28", 
+  #                                "2017-10-14", "2017-10-28", "2017-11-11"))
+# isu_fall <- isu_fall %>% mutate(Date = lubridate::ymd(Date))
+
+isu_fall <- data_frame(Year = c(rep(2017, 6)),
+                       Month = c(9, 9, 9, 10, 10, 11),
+                       Day = c(2, 9, 28, 14, 28, 11))
+                      
+isu_fall
+```
+
+
+Since the result is just one row its hard to find a pattern a pattern among the data but, I assume that there will probalby be more sales on those days if the data was avaliable.
+
+
+
+Note: your submission is supposed to be fully reproducible, i.e. the TA and I will 'knit' your submission in RStudio. 
+
+
+For the submission: submit your solution in an R Markdown file and (just for insurance) submit the corresponding html (or Word) file with it. 
